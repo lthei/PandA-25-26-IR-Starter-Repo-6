@@ -1,9 +1,9 @@
 # Part 6 — Starter
 
-This part builds on your **Part 5** solution. The key goals are
-1. Load the sonnets from the PoetryDB server instead of using a local file
-2. Cache the sonnets locally for speed and resource savings (most importantly, your time ⏱️)
-3. Add timing to be able to observe how execution speed varies
+This part builds on your **Part 5** solution. The key goals are to
+1. load the sonnets from the PoetryDB server instead of using a local file
+2. cache the sonnets locally for speed and resource savings (most importantly, your time ⏱️)
+3. add timing to be able to observe how execution speed varies
 
 ## Run the app
 
