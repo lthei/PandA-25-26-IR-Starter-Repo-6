@@ -22,7 +22,7 @@ import time
 import urllib.request
 import urllib.error
 
-from .constants import BANNER, HELP, POETRYDB_URL
+from .constants import BANNER, HELP, POETRYDB_URL, CACHE_FILENAME
 
 
 # ---------- Search helpers (unchanged from Part 5) ----------
@@ -167,8 +167,13 @@ def fetch_sonnets_from_api() -> List[Dict[str, Any]]:
     - PoetryDB returns a list of poems.
     - You can add error handling: raise a RuntimeError (or print a helpful message) if something goes wrong.
     """
-    sonnets = {}
-    return sonnets
+    url = POETRYDB_URL # API to get sonnets (constant)
+    try: # begin error-handling block
+        with urllib.request.urlopen(url) as response: # open URL and get response
+            sonnets = json.load(response) # parse the JSON data from the response
+            return sonnets
+    except Exception as e: # catch any kind of runtime error
+        raise RuntimeError(f"Failed to fetch sonnets: {e}") from e # print message and runtime error
 
 
 def load_sonnets() -> List[Dict[str, Any]]:
@@ -186,9 +191,19 @@ def load_sonnets() -> List[Dict[str, Any]]:
            - Return the data.
     """
 
-    # Default implementation: Load from the API always
+    filename = module_relative_path(CACHE_FILENAME)
 
-    return fetch_sonnets_from_api()
+    if os.path.exists(filename): # if file with sonnets exists
+        print("Loaded sonnets from cache.") # inform user
+        with open(filename, "r", encoding="utf-8") as f: # open the file in read mode
+            return json.load(f) # parse file and return list of sonnets
+    else: # if file doesn't exist
+        data = fetch_sonnets_from_api() # download data from API
+        print("Downloaded sonnets from PoetryDB.") # inform user
+        with open(filename, "w", encoding="utf-8") as f: # open file in write mode
+            json.dump(data, f, indent=2, ensure_ascii=False) # save the pretty-printed data in the file
+        return data # return the file with the sonnets
+
 
 # ---------- Config handling (carry over from Part 5) ----------
 
@@ -198,14 +213,26 @@ def load_config() -> Dict[str, Any]:
     """ToDo 0:
     Copy your working implementation from Part 5.
     """
+    filename = module_relative_path("config.json")  # get the absolute path of config.json
 
-    return DEFAULT_CONFIG.copy()
+    if os.path.exists(filename):  # check if the config file exists
+        with open(filename, "r", encoding="utf-8") as f:  # open the file if it exists, in read mode, using UTF-8 encoding
+            cfg = json.load(f)  # load the JSON data into a Python dictionary
+        if "highlight" not in cfg:  # check if the key "highlight" is missing in the loaded config
+            cfg["highlight"] = DEFAULT_CONFIG["highlight"]  # if missing, set it to the default value
+        if "search_mode" not in cfg:  # check if the key "search_mode" is missing in the loaded config
+            cfg["search_mode"] = DEFAULT_CONFIG["search_mode"]  # if missing, set it to the default value
+        return cfg  # return the (possibly fixed) config dictionary
+    else:
+        return DEFAULT_CONFIG.copy()  # if the config file doesn’t exist, return a copy of the defaults
 
 def save_config(cfg: Dict[str, Any]) -> None:
     """ToDo 0:
     Copy your working implementation from Part 5.
     """
-    pass
+    filename = module_relative_path("config.json")  # get the absolute path to the config.json file
+    with open(filename, "w",encoding="utf-8") as f:  # open the config file with UTF-8 in write mode, overwriting existing content
+        json.dump(cfg, f, indent=2,ensure_ascii=False)  # write the config dictionary into the file as pretty-printed JSON
 
 
 # ---------- CLI loop ----------
@@ -216,7 +243,12 @@ def main() -> None:
 
     # Load sonnets (from cache or API)
     # ToDo 3: Time how long loading the sonnets take and print it to the console
+    start = time.perf_counter() # start timer
     sonnets = load_sonnets()
+    end = time.perf_counter() # end timer
+
+    elapsed = (end - start) * 1000 # calculate milliseconds
+    print(f"Elapsed time: {elapsed:.3f} [ms]") # print time
 
     print(f"Loaded {len(sonnets)} sonnets.")
 
@@ -246,6 +278,7 @@ def main() -> None:
                     config["highlight"] = parts[1].lower() == "on"
                     print("Highlighting", "ON" if config["highlight"] else "OFF")
                     # ToDo 5: call save_config(config) here so the choice persists.
+                    save_config(config)
                 else:
                     print("Usage: :highlight on|off")
                 continue
@@ -268,7 +301,8 @@ def main() -> None:
         if not words:
             continue
 
-        # ToDo 3: Time how the execution of the user query takes
+        # ToDo 3: Time the execution of the user query takes
+        start = time.perf_counter() # start timer
 
         # query
         combined_results = []
@@ -299,8 +333,9 @@ def main() -> None:
                     elif config["search_mode"] == "OR":
                         combined_results[i] = combine_results(combined_result, result)
 
+        end = time.perf_counter() # end timer
         # Initialize elapsed_ms to contain the number of milliseconds the query evaluation took
-        elapsed_ms = 0
+        elapsed_ms = (end - start) * 1000 # calculate milliseconds
 
         print_results(raw, combined_results, bool(config.get("highlight", True)), elapsed_ms)
 
