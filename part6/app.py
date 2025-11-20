@@ -22,7 +22,7 @@ import time
 import urllib.request
 import urllib.error
 
-from .constants import BANNER, HELP, POETRYDB_URL, CACHE_FILENAME
+from .constants import BANNER, HELP, POETRYDB_URL, CACHE_FILENAME # add "CACHE_FILENAME" as constant and import it
 
 
 # ---------- Search helpers (unchanged from Part 5) ----------
@@ -167,9 +167,9 @@ def fetch_sonnets_from_api() -> List[Dict[str, Any]]:
     - PoetryDB returns a list of poems.
     - You can add error handling: raise a RuntimeError (or print a helpful message) if something goes wrong.
     """
-    url = POETRYDB_URL # API to get sonnets (constant)
+    # code from PP slide 73 (wrapped in an error handling block)
     try: # begin error-handling block
-        with urllib.request.urlopen(url) as response: # open URL and get response
+        with urllib.request.urlopen(POETRYDB_URL) as response: # open URL and get response
             sonnets = json.load(response) # parse the JSON data from the response
             return sonnets
     except Exception as e: # catch any kind of runtime error
@@ -243,6 +243,7 @@ def main() -> None:
 
     # Load sonnets (from cache or API)
     # ToDo 3: Time how long loading the sonnets take and print it to the console
+    # code from README.md
     start = time.perf_counter() # start timer
     sonnets = load_sonnets()
     end = time.perf_counter() # end timer
@@ -337,7 +338,7 @@ def main() -> None:
         # Initialize elapsed_ms to contain the number of milliseconds the query evaluation took
         elapsed_ms = (end - start) * 1000 # calculate milliseconds
 
-        print_results(raw, combined_results, bool(config.get("highlight", True)), elapsed_ms)
+        print_results(raw, combined_results, bool(config.get("highlight", True)), elapsed_ms) # print result
 
 
 if __name__ == "__main__":
